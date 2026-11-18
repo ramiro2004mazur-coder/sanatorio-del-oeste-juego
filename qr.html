@@ -52,9 +52,10 @@
         image-rendering: pixelated;
       }
       .url {
-        font-size: clamp(18px, 4vh, 54px);
+        /* en una sola línea: se achica según el ancho de la pantalla */
+        font-size: min(4.4vh, 2.3vw);
         font-weight: bold;
-        word-break: break-all;
+        white-space: nowrap;
         color: #ffffff;
       }
     </style>
