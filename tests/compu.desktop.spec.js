@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { guardConsole, expectClean, open, waitScene, gs, shot } from './helpers.js';
+import { guardConsole, expectClean, open, waitScene, gs, shot, walkTo } from './helpers.js';
 
 test('en compu: teclado (flechas/WASD + Espacio) y la página del QR', async ({ page }, testInfo) => {
   const problems = guardConsole(page);
@@ -10,18 +10,21 @@ test('en compu: teclado (flechas/WASD + Espacio) y la página del QR', async ({ 
   await page.keyboard.press('Enter');
   await page.evaluate(() => window.__TEST__.jump('Game'));
   await waitScene(page, 'Game');
+  // Vamos al pasillo (ahí no deambulan pacientes que puedan cruzarse).
+  await walkTo(page, 8, 9);
   const p0 = (await gs(page)).player;
-  await page.keyboard.down('ArrowUp');
-  await page.waitForTimeout(700);
-  await page.keyboard.up('ArrowUp');
-  await page.waitForTimeout(400);
-  const p1 = (await gs(page)).player;
-  expect(p1.y).toBeLessThan(p0.y);
+  expect(p0).toMatchObject({ x: 8, y: 9 });
   await page.keyboard.down('KeyA');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(450);
   await page.keyboard.up('KeyA');
-  await page.waitForTimeout(400);
-  expect((await gs(page)).player.x).toBeLessThan(p1.x);
+  await page.waitForTimeout(500);
+  const p1 = (await gs(page)).player;
+  expect(p1.x).toBeLessThan(p0.x);
+  await page.keyboard.down('ArrowUp');
+  await page.waitForTimeout(350);
+  await page.keyboard.up('ArrowUp');
+  await page.waitForTimeout(500);
+  expect((await gs(page)).player.y).toBeLessThan(p1.y);
   await shot(page, testInfo, 'compu-juego');
 
   await page.goto('./qr.html');

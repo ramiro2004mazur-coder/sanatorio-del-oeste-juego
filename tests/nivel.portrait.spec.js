@@ -251,8 +251,9 @@ test('ir a otra pestaña y volver pausa y retoma', async ({ page }) => {
   const t2 = (await gs(page)).elapsed;
   expect(t2).toBeGreaterThan(t1 + 0.5);
   // sigue jugable
-  await walkTo(page, 7, 16);
-  expect((await gs(page)).player).toMatchObject({ x: 7, y: 16 });
+  // (4,16) queda fuera de la zona donde deambulan los pacientes
+  await walkTo(page, 4, 16);
+  expect((await gs(page)).player).toMatchObject({ x: 4, y: 16 });
   expectClean(problems);
 });
 
