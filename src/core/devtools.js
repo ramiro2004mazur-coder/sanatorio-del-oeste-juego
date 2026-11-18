@@ -6,7 +6,7 @@ import { controls } from './controls.js';
 import { hitClientPoint, GW } from './ui.js';
 import { TILE } from './map.js';
 
-const SCENES = ['Title', 'Game', 'WhatFailed', 'Decision', 'Lost', 'Fixed', 'Proposal', 'End'];
+const SCENES = ['Title', 'Levels', 'Game', 'WhatFailed', 'Decision', 'Lost', 'Fixed', 'Proposal', 'End', 'Finale'];
 
 export function jumpTo(game, key) {
   state.ensureRun();
@@ -77,6 +77,41 @@ export function initDevtools(game) {
     jump(key) {
       jumpTo(game, key);
     },
+    // Elige nivel (0, 1, 2) y salta a una escena (por defecto, el juego).
+    level(i, key = 'Game') {
+      state.startLevel(i);
+      jumpTo(game, key);
+    },
+    levelIndex() {
+      return state.levelIndex;
+    },
+    completed() {
+      return state.completed.slice();
+    },
+    hudState() {
+      const h = game.scene.getScene('Hud');
+      if (!h || !h.sys.isActive()) return null;
+      return {
+        meterLabel: h.pain.label.text,
+        meterIcon: h.pain.icon,
+        calendar: h.calText.visible ? h.calText.text : null,
+        controls: h.controlsVisible,
+        faint: !!h.faintState,
+      };
+    },
+    // Fuerza el valor del medidor (para probar topes y finales).
+    setMeter(v) {
+      const g = game.scene.getScene('Game');
+      if (g && g.sys.isActive()) g.pain = v;
+    },
+    // Dispara un evento del guion del nivel actual (para pruebas de robustez).
+    event(name) {
+      const g = game.scene.getScene('Game');
+      if (g && g.sys.isActive()) g.engineEvent(name);
+    },
+    fps() {
+      return game.loop.actualFps;
+    },
     audio() {
       return { muted: audio.muted, ctx: audio.ctx ? audio.ctx.state : 'none', music: !!audio.musicTimer };
     },
@@ -103,6 +138,16 @@ export function initDevtools(game) {
     const b = document.createElement('button');
     b.textContent = k;
     b.addEventListener('click', () => jumpTo(game, k));
+    panel.appendChild(b);
+  });
+  panel.appendChild(document.createElement('br'));
+  [0, 1, 2].forEach((i) => {
+    const b = document.createElement('button');
+    b.textContent = `Nivel ${i + 1}`;
+    b.addEventListener('click', () => {
+      state.startLevel(i);
+      jumpTo(game, 'Game');
+    });
     panel.appendChild(b);
   });
   const hb = document.createElement('button');

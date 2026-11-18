@@ -12,6 +12,8 @@ import Lost from './scenes/Lost.js';
 import Fixed from './scenes/Fixed.js';
 import Proposal from './scenes/Proposal.js';
 import End from './scenes/End.js';
+import Levels from './scenes/Levels.js';
+import Finale from './scenes/Finale.js';
 
 const config = {
   // Canvas 2D: más predecible que WebGL en celulares viejos y sin pérdidas de contexto.
@@ -30,7 +32,7 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [Boot, Title, Game, Hud, WhatFailed, Decision, Lost, Fixed, Proposal, End],
+  scene: [Boot, Title, Levels, Game, Hud, WhatFailed, Decision, Lost, Fixed, Proposal, End, Finale],
 };
 
 const game = new Phaser.Game(config);

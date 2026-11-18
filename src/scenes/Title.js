@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { GW, COLORS, titleText, bodyText, makeButton, fadeIn, goTo } from '../core/ui.js';
 import { frameIndex } from '../core/characters.js';
 import { audio } from '../core/audio.js';
-import { state } from '../core/state.js';
 
 export default class Title extends Phaser.Scene {
   constructor() {
@@ -22,7 +21,7 @@ export default class Title extends Phaser.Scene {
     t.setShadow(0, 6, '#000000', 0, false, true);
     this.tweens.add({ targets: t, y: 138, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
-    bodyText(this, GW / 2, 240, state.level.subtitulo, 38, COLORS.cream).setOrigin(0.5);
+    bodyText(this, GW / 2, 240, '3 niveles para arreglar el sanatorio', 38, COLORS.cream).setOrigin(0.5);
 
     // Fachada pixel art (180x120 escalada x4 → 720x480, de y=290 a y=770)
     const top = 290;
@@ -73,8 +72,7 @@ export default class Title extends Phaser.Scene {
       () => {
         audio.unlock();
         audio.setMusic(true);
-        state.newRun();
-        goTo(this, 'Game');
+        goTo(this, 'Levels');
       },
       { name: 'btn:entrar', fontSize: 36 },
     );

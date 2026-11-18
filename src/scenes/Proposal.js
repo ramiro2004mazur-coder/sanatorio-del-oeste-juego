@@ -24,6 +24,16 @@ export default class Proposal extends Phaser.Scene {
       blocks.push({ t: 'p', text: b.texto, after: 26 });
     });
     blocks.push({ t: 'gap', h: 6 });
+    if (P.encuesta) {
+      blocks.push({
+        t: 'box',
+        title: P.encuesta.titulo,
+        items: [P.encuesta.texto],
+        note: P.encuesta.nota,
+        fill: '#e3f2fb',
+        titleColor: '#0d6e9a',
+      });
+    }
     blocks.push({ t: 'box', title: P.materia.titulo, items: P.materia.items });
     blocks.push({ t: 'gap', h: 10 });
     const content = renderRich(this, blocks, { width: GW - 80, size: 36, color: COLORS.dark, em: '#0d6e9a' });
@@ -58,7 +68,7 @@ export default class Proposal extends Phaser.Scene {
     this.tweens.add({ targets: this.hint, y: VIEW_BOTTOM - 28, duration: 500, yoyo: true, repeat: -1 });
 
     this.bar = this.add.graphics().setDepth(9);
-    const btn = makeButton(this, GW / 2, 1186, 420, 108, 'SEGUIR  ▶', () => goTo(this, 'End'), {
+    const btn = makeButton(this, GW / 2, 1186, 420, 108, 'SEGUIR  ▶', () => goTo(this, state.isLastLevel ? 'Finale' : 'End'), {
       name: 'btn:seguir',
     });
     btn.setDepth(12);
