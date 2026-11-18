@@ -114,3 +114,54 @@ export async function shot(page, testInfo, name) {
   shotN += 1;
   await page.screenshot({ path: path.join(dir, `${String(shotN).padStart(2, '0')}-${name}.png`) });
 }
+
+// Desde el inicio: "Tocá para entrar" → menú de niveles → nivel i.
+export async function enterLevel(page, i = 0) {
+  await tapHit(page, 'btn:entrar');
+  await waitScene(page, 'Levels');
+  await tapHit(page, `lvl:${i}`);
+  await waitScene(page, 'Game');
+}
+
+// Toca un objeto del nivel (camina hasta él e interactúa, como un usuario).
+export async function tapObject(page, id) {
+  const s = await gs(page);
+  const o = s.objetos[id];
+  const pt = await page.evaluate(([x, y]) => window.__TEST__.tile(x, y), [o.x, o.y]);
+  await tapAt(page, pt);
+}
+
+export async function waitPaso(page, paso, timeout = 30_000) {
+  await page.waitForFunction((p) => {
+    const g = window.__TEST__.game();
+    return g && g.paso === p;
+  }, paso, { timeout });
+}
+
+// Juega las pantallas después de la derrota: equivocada → roja → tachada → correcta → arreglado → propuesta.
+export async function playDecision(page, correctId, testInfo, prefix = '') {
+  await waitScene(page, 'WhatFailed', 40_000);
+  await page.waitForTimeout(800);
+  if (testInfo) await shot(page, testInfo, `${prefix}que-fallo`);
+  await tapHit(page, 'btn:seguir');
+  await waitScene(page, 'Decision');
+  const run = await page.evaluate(() => window.__TEST__.run());
+  expect(run.order).toHaveLength(3);
+  expect(run.crossed).toEqual([]);
+  if (testInfo) await shot(page, testInfo, `${prefix}decision`);
+  const wrong = run.order.find((id) => id !== correctId);
+  await tapHit(page, `opt:${wrong}`);
+  await waitScene(page, 'Lost');
+  await page.waitForTimeout(900);
+  if (testInfo) await shot(page, testInfo, `${prefix}perdiste`);
+  await tapHit(page, 'btn:reintentar');
+  await waitScene(page, 'Decision');
+  expect((await page.evaluate(() => window.__TEST__.run())).crossed).toEqual([wrong]);
+  if (testInfo) await shot(page, testInfo, `${prefix}decision-tachada`);
+  await tapHit(page, `opt:${wrong}`);
+  await page.waitForTimeout(500);
+  expect(await scenes(page)).toEqual(['Decision']);
+  await tapHit(page, `opt:${correctId}`);
+  await waitScene(page, 'Fixed', 10_000);
+  return run;
+}

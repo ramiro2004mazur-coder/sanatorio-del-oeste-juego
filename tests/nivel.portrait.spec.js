@@ -14,6 +14,7 @@ import {
   walkTo,
   talkTo,
   shot,
+  enterLevel,
 } from './helpers.js';
 
 test('juega el nivel completo y jugar de nuevo resetea todo', async ({ page }, testInfo) => {
@@ -24,6 +25,9 @@ test('juega el nivel completo y jugar de nuevo resetea todo', async ({ page }, t
   await shot(page, testInfo, 'inicio');
 
   await tapHit(page, 'btn:entrar');
+  await waitScene(page, 'Levels');
+  await shot(page, testInfo, 'menu');
+  await tapHit(page, 'lvl:0');
   await waitScene(page, 'Game');
   await page.waitForTimeout(400);
   let s = await gs(page);
@@ -141,9 +145,12 @@ test('juega el nivel completo y jugar de nuevo resetea todo', async ({ page }, t
   await page.waitForTimeout(500);
   await shot(page, testInfo, 'final');
   const count = await page.evaluate(() => window.__TEST__.runCount());
-  await tapHit(page, 'btn:jugar');
-
-  // Jugar de nuevo: todo reseteado
+  expect(await page.evaluate(() => window.__TEST__.completed())).toContain('gestion-del-cambio');
+  // Menú → nivel 1 de nuevo: todo reseteado
+  await tapHit(page, 'btn:menu');
+  await waitScene(page, 'Levels');
+  await shot(page, testInfo, 'menu-completado');
+  await tapHit(page, 'lvl:0');
   await waitScene(page, 'Game');
   await page.waitForTimeout(500);
   s = await gs(page);
@@ -165,8 +172,7 @@ test('el tope de tiempo desmaya aunque te quedes quieto', async ({ page }) => {
   const problems = guardConsole(page);
   await open(page, 'test=1&speed=10');
   await waitScene(page, 'Title');
-  await tapHit(page, 'btn:entrar');
-  await waitScene(page, 'Game');
+  await enterLevel(page, 0);
   // 120 s de juego a x10 = 12 s
   await page.waitForFunction(() => window.__TEST__.game().phase === 'faint', null, { timeout: 25_000 });
   await waitScene(page, 'WhatFailed', 20_000);
@@ -179,6 +185,11 @@ test('toques rápidos no disparan escenas dobles', async ({ page }) => {
   await waitScene(page, 'Title');
   const pt = await page.evaluate(() => window.__TEST__.hit('btn:entrar'));
   for (let i = 0; i < 8; i++) await tapAt(page, pt);
+  await waitScene(page, 'Levels');
+  await page.waitForTimeout(500);
+  expect(await scenes(page)).toEqual(['Levels']);
+  const lv = await page.evaluate(() => window.__TEST__.hit('lvl:0'));
+  for (let i = 0; i < 8; i++) await tapAt(page, lv);
   await waitScene(page, 'Game');
   await page.waitForTimeout(800);
   expect((await scenes(page)).sort()).toEqual(['Game', 'Hud']);
@@ -220,9 +231,10 @@ test('toques rápidos no disparan escenas dobles', async ({ page }) => {
   await waitScene(page, 'End');
   await page.waitForTimeout(500);
   expect(await scenes(page)).toEqual(['End']);
-  const j = await page.evaluate(() => window.__TEST__.hit('btn:jugar'));
+  const j = await page.evaluate(() => window.__TEST__.hit('btn:siguiente'));
   for (let i = 0; i < 6; i++) await tapAt(page, j);
   await waitScene(page, 'Game');
+  expect(await page.evaluate(() => window.__TEST__.levelIndex())).toBe(1);
   await page.waitForTimeout(600);
   expect((await scenes(page)).sort()).toEqual(['Game', 'Hud']);
   expectClean(problems);
@@ -232,8 +244,7 @@ test('ir a otra pestaña y volver pausa y retoma', async ({ page }) => {
   const problems = guardConsole(page);
   await open(page, 'test=1');
   await waitScene(page, 'Title');
-  await tapHit(page, 'btn:entrar');
-  await waitScene(page, 'Game');
+  await enterLevel(page, 0);
   await page.evaluate(() => window.__TEST__.walkTo(7, 14));
   const setHidden = (h) =>
     page.evaluate((hidden) => {
@@ -263,7 +274,7 @@ test('mute/unmute en cualquier momento', async ({ page }) => {
   const mute = page.locator('#mute');
   await waitScene(page, 'Title');
   await expect(mute).toBeVisible();
-  for (const key of ['Title', 'Game', 'Decision', 'Lost', 'Fixed', 'Proposal', 'End']) {
+  for (const key of ['Title', 'Levels', 'Game', 'Decision', 'Lost', 'Fixed', 'Proposal', 'End', 'Finale']) {
     if (key !== 'Title') {
       await page.evaluate((k) => window.__TEST__.jump(k), key);
       await waitScene(page, key);
@@ -283,8 +294,7 @@ test('no hay forma de quedar encerrado en el mapa', async ({ page }) => {
   const problems = guardConsole(page);
   await open(page, 'test=1&speed=3');
   await waitScene(page, 'Title');
-  await tapHit(page, 'btn:entrar');
-  await waitScene(page, 'Game');
+  await enterLevel(page, 0);
   const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'];
   for (let i = 0; i < 70; i++) {
     const k = keys[Math.floor(Math.random() * keys.length)];
