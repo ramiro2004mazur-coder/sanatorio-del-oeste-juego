@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sanatorio del Oeste · QR</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%23fff'/%3E%3Crect x='3' y='1' width='2' height='6' fill='%23e04848'/%3E%3Crect x='1' y='3' width='6' height='2' fill='%23e04848'/%3E%3C/svg%3E"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0f2a2e;
+        color: #f6f1e3;
+        font-family: 'Courier New', monospace;
+      }
+      main {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2vh;
+        padding: 2vh 2vw;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 6vh, 72px);
+        letter-spacing: 0.05em;
+        color: #ffd84a;
+        text-shadow: 0 0.08em 0 #000;
+      }
+      h2 {
+        margin: 0;
+        font-size: clamp(18px, 3.4vh, 40px);
+        font-weight: normal;
+      }
+      .qr {
+        background: #fff;
+        padding: 1.5vh;
+        border: 0.8vh solid #3fb68b;
+        line-height: 0;
+      }
+      .qr img {
+        width: min(62vh, 86vw);
+        height: min(62vh, 86vw);
+        image-rendering: pixelated;
+      }
+      .url {
+        font-size: clamp(18px, 4vh, 54px);
+        font-weight: bold;
+        word-break: break-all;
+        color: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>SANATORIO DEL OESTE</h1>
+      <h2>Escaneá y jugá desde tu celu</h2>
+      <div class="qr"><img src="__QR_DATA_URL__" alt="Código QR del juego" /></div>
+      <div class="url">__PUBLIC_URL__</div>
+    </main>
+  </body>
+</html>
