@@ -1,48 +1,61 @@
 // Mapa del hospital (igual para todos los niveles). Cada carácter es un tile de 16x16.
-//  #  pared            .  piso            D  puerta de consultorio
+//  #  pared            .  piso            D  puerta (en pared vertical)
 //  b  camilla          k  escritorio      p  planta
 //  h  silla            =  mostrador       w  dispensador de agua
 //  T  tele (en pared)  m  alfombra        E  puerta de entrada (vidrio)
 //  s  camilla rodante  r  carrito del enfermero
+//  f  fichero          i  impresora       e  estante con historias clínicas
+//  n  mostrador de enfermería             o  mesa redonda (2 tiles)
+//
+// Columnas 0-14: el sanatorio del nivel 1 (consultorios, pasillo y hall).
+// Columnas 15-26: el ala del personal (pasillo, Administración, office de enfermería,
+// Jefatura y sala de reuniones). Se entra desde el hall por la puerta (14,12).
 export const MAP = [
-  '###############',
-  '#bk.#.....#.kb#',
-  '#...#.....#...#',
-  '#...D.....D...#',
-  '#p..#.....#..p#',
-  '#####.....#####',
-  '#bk.#.r...#.kb#',
-  '#...#.....#...#',
-  '#...D.....D...#',
-  '#p..#....s#..p#',
-  '#####.....##T##',
-  '#....=.......w#',
-  '#=====........#',
-  '#.........hhhh#',
-  '#.............#',
-  '#.........hhhh#',
-  '#.............#',
-  '#p...........p#',
-  '#.............#',
-  '#.............#',
-  '#.............#',
-  '#p....mmm....p#',
-  '#.....mmm.....#',
-  '######EEE######',
+  '###########################',
+  '#bk.#.....#.kb#..#ff....iw#',
+  '#...#.....#...#..#..k.....#',
+  '#...D.....D...#..#........#',
+  '#p..#.....#..p#..D........#',
+  '#####.....#####..#........#',
+  '#bk.#.r...#.kb#..#..k..k..#',
+  '#...#.....#...#..#p......p#',
+  '#...D.....D...#..##########',
+  '#p..#....s#..p#..#eee.....#',
+  '#####.....##T##..#........#',
+  '#....=.......w#..D....nnn.#',
+  '#=====........D..#........#',
+  '#.........hhhh#..#.......p#',
+  '#.............#..##########',
+  '#.........hhhh#..#.......p#',
+  '#.............#..D.....k..#',
+  '#p...........p#..#p.......#',
+  '#.............#..##########',
+  '#.............#..#p......p#',
+  '#.............#..#........#',
+  '#p....mmm....p#..D...oo...#',
+  '#.....mmm.....#..#........#',
+  '######EEE##################',
 ];
 
 export const TILE = 16;
 export const MAP_W = MAP[0].length;
 export const MAP_H = MAP.length;
 
-const SOLID = new Set(['#', 'b', 'k', 'p', 'h', '=', 'w', 'T', 'E', 's', 'r']);
+const SOLID = new Set(['#', 'b', 'k', 'p', 'h', '=', 'w', 'T', 'E', 's', 'r', 'f', 'i', 'e', 'n', 'o']);
 
-// Consultorios: puerta, habitación interior y lado del pasillo donde va el cartel.
+// Habitaciones con puerta: puerta, un tile adentro, un tile afuera, rectángulo interior
+// y de qué lado de la puerta queda la habitación (para el cartel).
 export const ROOMS = {
   c1: { numero: 1, door: { x: 4, y: 3 }, inside: { x: 3, y: 3 }, outside: { x: 5, y: 3 }, rect: { x: 1, y: 1, w: 3, h: 4 }, side: 'left' },
   c2: { numero: 2, door: { x: 4, y: 8 }, inside: { x: 3, y: 8 }, outside: { x: 5, y: 8 }, rect: { x: 1, y: 6, w: 3, h: 4 }, side: 'left' },
   c3: { numero: 3, door: { x: 10, y: 3 }, inside: { x: 11, y: 3 }, outside: { x: 9, y: 3 }, rect: { x: 11, y: 1, w: 3, h: 4 }, side: 'right' },
   c4: { numero: 4, door: { x: 10, y: 8 }, inside: { x: 11, y: 8 }, outside: { x: 9, y: 8 }, rect: { x: 11, y: 6, w: 3, h: 4 }, side: 'right' },
+  // Ala del personal
+  ala: { titulo: 'PERSONAL', door: { x: 14, y: 12 }, inside: { x: 15, y: 12 }, outside: { x: 13, y: 12 }, rect: { x: 15, y: 1, w: 11, h: 22 }, side: 'right' },
+  adm: { titulo: 'ADMINISTRACIÓN', door: { x: 17, y: 4 }, inside: { x: 18, y: 4 }, outside: { x: 16, y: 4 }, rect: { x: 18, y: 1, w: 8, h: 7 }, side: 'right' },
+  ofi: { titulo: 'ENFERMERÍA', door: { x: 17, y: 11 }, inside: { x: 18, y: 11 }, outside: { x: 16, y: 11 }, rect: { x: 18, y: 9, w: 8, h: 5 }, side: 'right' },
+  jef: { titulo: 'DESPACHO', door: { x: 17, y: 16 }, inside: { x: 18, y: 16 }, outside: { x: 16, y: 16 }, rect: { x: 18, y: 15, w: 8, h: 3 }, side: 'right' },
+  reu: { titulo: 'REUNIONES', door: { x: 17, y: 21 }, inside: { x: 18, y: 21 }, outside: { x: 16, y: 21 }, rect: { x: 18, y: 19, w: 8, h: 4 }, side: 'right' },
 };
 
 export function tileAt(x, y) {
@@ -73,12 +86,24 @@ export function inRect(x, y, r) {
 // ---------- dibujo del mapa (una sola imagen) ----------
 function floorKind(x, y) {
   if (tileAt(x, y) === 'D') return 'room';
+  if (x >= 15) {
+    if (x <= 16) return 'corr';
+    if (y >= 1 && y <= 7) return 'wood';
+    if (y >= 15 && y <= 17) return 'carpet';
+    if (y >= 19) return 'wood';
+    return 'room';
+  }
   if (y <= 9 && (x <= 3 || x >= 11)) return 'room';
   if (y <= 10 && x >= 5 && x <= 9) return 'corr';
   return 'hall';
 }
 
-const DECOR = { '6,0': 'cross', '8,0': 'cross', '7,0': 'clock', '2,5': 'poster', '12,5': 'cross', '2,0': 'cross', '12,0': 'poster' };
+const DECOR = {
+  '6,0': 'cross', '8,0': 'cross', '7,0': 'clock', '2,5': 'poster', '12,5': 'cross', '2,0': 'cross', '12,0': 'poster',
+  // ala del personal
+  '21,0': 'window', '22,0': 'window', '19,8': 'clock', '22,8': 'qr', '23,8': 'qrtext', '20,14': 'window', '21,14': 'window',
+  '23,18': 'board', '22,14': 'poster',
+};
 
 export function drawMapCanvas() {
   const c = document.createElement('canvas');
@@ -91,7 +116,7 @@ export function drawMapCanvas() {
     ctx.fillRect(x, y, w, h);
   };
 
-  const floor = (px, py, kind) => {
+  const floor = (px, py, kind, x, y) => {
     if (kind === 'hall') {
       r(px, py, 16, 16, '#ece6d6');
       r(px, py, 16, 1, '#d6cdb8');
@@ -104,6 +129,18 @@ export function drawMapCanvas() {
       r(px, py, 16, 16, '#dce7ec');
       r(px, py, 8, 8, '#cfdde4');
       r(px + 8, py + 8, 8, 8, '#cfdde4');
+    } else if (kind === 'wood') {
+      r(px, py, 16, 16, '#d9b98a');
+      r(px, py + 4, 16, 1, '#c9a674');
+      r(px, py + 9, 16, 1, '#c9a674');
+      r(px, py + 14, 16, 1, '#c9a674');
+      r(px + ((x * 7 + y * 3) % 12), py, 1, 4, '#c9a674');
+      r(px + ((x * 5 + y * 11) % 12) + 2, py + 5, 1, 4, '#c9a674');
+    } else if (kind === 'carpet') {
+      r(px, py, 16, 16, '#8a5a6e');
+      r(px + 1, py + 1, 14, 14, '#9a6a7e');
+      r(px + 4, py + 4, 2, 2, '#a97a8e');
+      r(px + 10, py + 10, 2, 2, '#a97a8e');
     } else {
       r(px, py, 16, 16, '#e4f0ea');
       r(px, py, 16, 1, '#d0e3d9');
@@ -154,6 +191,37 @@ export function drawMapCanvas() {
             r(px + 4, py + 3, 8, 6, '#ffffff');
             r(px + 7, py + 4, 1, 3, '#26303a');
             r(px + 8, py + 6, 2, 1, '#26303a');
+          } else if (deco === 'window') {
+            r(px + 1, py + 1, 14, 10, '#5e6e78');
+            r(px + 2, py + 2, 12, 8, '#9fd6ef');
+            r(px + 2, py + 2, 12, 2, '#c8ecff');
+            r(px + 7, py + 2, 2, 8, '#5e6e78');
+            r(px + 3, py + 5, 2, 3, '#ffffff');
+          } else if (deco === 'qr') {
+            r(px + 1, py + 0, 15, 12, '#26303a');
+            r(px + 2, py + 1, 14, 10, '#ffffff');
+            const qr = ['1110101', '1010011', '1110100', '0001011', '1101110', '1011010', '1110111'];
+            qr.forEach((row, yy) =>
+              row.split('').forEach((v, xx) => {
+                if (v === '1') r(px + 3 + xx, py + 2 + yy, 1, 1, '#1d2b30');
+              }),
+            );
+            r(px + 11, py + 2, 4, 2, '#3fb68b');
+            r(px + 11, py + 5, 4, 1, '#9aa5ad');
+            r(px + 11, py + 7, 3, 1, '#9aa5ad');
+          } else if (deco === 'qrtext') {
+            r(px, py + 0, 14, 12, '#26303a');
+            r(px, py + 1, 13, 10, '#ffffff');
+            r(px + 1, py + 2, 10, 2, '#3fb68b');
+            r(px + 1, py + 5, 11, 1, '#9aa5ad');
+            r(px + 1, py + 7, 9, 1, '#9aa5ad');
+            r(px + 1, py + 9, 10, 1, '#9aa5ad');
+          } else if (deco === 'board') {
+            r(px + 1, py + 1, 14, 10, '#7d5530');
+            r(px + 2, py + 2, 12, 8, '#c99561');
+            r(px + 3, py + 3, 4, 3, '#ffe27a');
+            r(px + 8, py + 3, 4, 4, '#ffffff');
+            r(px + 4, py + 7, 3, 2, '#7fd3ff');
           } else if (deco === 'poster') {
             r(px + 3, py + 1, 10, 10, '#f6f1e3');
             r(px + 4, py + 2, 8, 3, '#4f9fd8');
@@ -171,7 +239,7 @@ export function drawMapCanvas() {
         r(px + 15, py, 1, 16, '#5e6e78');
         continue;
       }
-      floor(px, py, floorKind(x, y));
+      floor(px, py, floorKind(x, y), x, y);
       switch (t) {
         case 'D':
           r(px, py, 16, 2, '#2f5552');
@@ -252,6 +320,58 @@ export function drawMapCanvas() {
           r(px + 3, py + 13, 2, 2, '#333');
           r(px + 11, py + 13, 2, 2, '#333');
           break;
+        case 'f':
+          r(px + 2, py + 0, 12, 15, '#7a8792');
+          r(px + 3, py + 1, 10, 13, '#a3b0ba');
+          [2, 6, 10].forEach((yy) => {
+            r(px + 3, py + yy, 10, 1, '#5e6b75');
+            r(px + 7, py + yy + 2, 2, 1, '#3a434b');
+          });
+          r(px + 2, py + 15, 12, 1, '#4a545c');
+          break;
+        case 'i':
+          r(px + 1, py + 4, 14, 10, '#3a3f47');
+          r(px + 2, py + 5, 12, 8, '#d8dde2');
+          r(px + 3, py + 2, 10, 3, '#f7f7f7');
+          r(px + 3, py + 11, 10, 1, '#26303a');
+          r(px + 11, py + 6, 2, 1, '#3fb68b');
+          r(px + 4, py + 12, 8, 3, '#ffffff');
+          break;
+        case 'e':
+          r(px + 0, py + 0, 16, 15, '#7d5530');
+          r(px + 1, py + 1, 14, 6, '#5a3a20');
+          r(px + 1, py + 8, 14, 6, '#5a3a20');
+          ['#4f9fd8', '#e04848', '#ffd84a', '#3fb68b', '#f6f1e3', '#9b59b6'].forEach((col, k) => {
+            r(px + 1 + k * 2 + (k > 2 ? 1 : 0), py + 2, 2, 5, col);
+            r(px + 2 + k * 2, py + 9, 2, 5, k % 2 ? '#f6f1e3' : '#7fc8e8');
+          });
+          r(px, py + 15, 16, 1, '#4a3018');
+          break;
+        case 'n':
+          r(px, py, 16, 6, '#7fc8b8');
+          r(px, py, 16, 1, '#a6dcc9');
+          r(px, py + 6, 16, 10, '#f2ecdc');
+          r(px, py + 9, 16, 2, '#4f9fd8');
+          r(px, py + 15, 16, 1, '#c9c2b0');
+          break;
+        case 'o': {
+          const left = tileAt(x + 1, y) === 'o';
+          const ox = left ? 0 : -16;
+          // mesa redonda de 32x16 dibujada en dos mitades
+          const rr = (xx, yy, w, h, col) => {
+            const a = Math.max(xx, -ox);
+            const b = Math.min(xx + w, 16 - ox);
+            if (b > a) r(px + a + ox, py + yy, b - a, h, col);
+          };
+          rr(6, 1, 20, 14, '#7d5530');
+          rr(3, 3, 26, 10, '#7d5530');
+          rr(7, 2, 18, 11, '#b07a45');
+          rr(4, 4, 24, 7, '#b07a45');
+          rr(8, 3, 10, 2, '#c99561');
+          rr(12, 6, 6, 4, '#f6f1e3');
+          rr(20, 7, 3, 3, '#ffffff');
+          break;
+        }
         default:
           break;
       }

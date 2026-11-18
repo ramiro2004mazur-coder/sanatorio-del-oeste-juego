@@ -113,6 +113,91 @@ function drawFace(level) {
   return c;
 }
 
+// Caritas de miedo: de tranquila a aterrada, con gotitas de sudor.
+function drawFear(level) {
+  const { c, ctx } = canvas(16, 16);
+  const colors = ['#ffd84a', '#f5d66a', '#e8d58a', '#d6dca8', '#c8e0d8'];
+  drawRows(ctx, FACE, { O: '#26303a', Y: colors[level] });
+  const p = (x, y, col = '#26303a') => {
+    ctx.fillStyle = col;
+    ctx.fillRect(x, y, 1, 1);
+  };
+  const drop = (x, y) => {
+    p(x, y, '#7fd0f5');
+    p(x, y + 1, '#7fd0f5');
+    p(x - 1, y + 1, '#c8ecff');
+    p(x, y + 2, '#4fb3e8');
+  };
+  if (level === 0) {
+    [5, 10].forEach((x) => {
+      p(x, 6);
+      p(x, 7);
+    });
+    [5, 10].forEach((x) => p(x, 10));
+    for (let x = 6; x <= 9; x++) p(x, 11);
+  } else if (level === 1) {
+    [5, 10].forEach((x) => {
+      p(x, 5);
+      p(x, 6);
+      p(x, 7);
+    });
+    for (let x = 6; x <= 9; x++) p(x, 11);
+    drop(13, 3);
+  } else if (level === 2) {
+    // cejas preocupadas
+    p(4, 4); p(5, 3); p(10, 3); p(11, 4);
+    [5, 10].forEach((x) => {
+      p(x, 6);
+      p(x, 7);
+    });
+    p(5, 11); p(6, 10); p(7, 11); p(8, 10); p(9, 11); p(10, 10);
+    drop(13, 3);
+    drop(2, 6);
+  } else {
+    // ojos enormes y boca abierta temblando
+    const big = level === 4;
+    [[4, 5], [9, 5]].forEach(([x, y]) => {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, y, 3, 3);
+      p(x + 1, y + 1);
+    });
+    p(4, 3); p(6, 3); p(9, 3); p(11, 3);
+    for (let x = 6; x <= 9; x++) {
+      p(x, 10);
+      p(x, big ? 13 : 12);
+    }
+    for (let y = 11; y <= (big ? 12 : 11); y++) {
+      p(5, y);
+      p(10, y);
+      for (let x = 6; x <= 9; x++) p(x, y, '#7a2020');
+    }
+    drop(13, 2);
+    drop(2, 7);
+    if (big) drop(13, 9);
+  }
+  return c;
+}
+
+// Batería de motivación: 0 vacía (roja) ... 4 llena (verde).
+function drawBattery(level) {
+  const { c, ctx } = canvas(16, 16);
+  const r = (x, y, w, h, col) => {
+    ctx.fillStyle = col;
+    ctx.fillRect(x, y, w, h);
+  };
+  r(1, 3, 13, 10, '#26303a');
+  r(14, 6, 2, 4, '#26303a');
+  r(2, 4, 11, 8, '#1d2b30');
+  const cols = ['#ff4a4a', '#ff9a3a', '#ffd84a', '#5bd17a', '#5bd17a'];
+  const bars = [0, 1, 2, 3, 4][level];
+  for (let i = 0; i < bars; i++) r([3, 5, 8, 10][i], 5, 2, 6, cols[level]);
+  if (level === 0) {
+    r(7, 5, 1, 4, '#ff4a4a');
+    r(7, 10, 1, 1, '#ff4a4a');
+  }
+  return c;
+}
+
 export function generateTextures(scene) {
   // Personajes
   Object.keys(CHARACTERS).forEach((key) => {
@@ -122,8 +207,91 @@ export function generateTextures(scene) {
   // Mapa del hospital
   addCanvas(scene, 'map', drawMapCanvas());
 
-  // Caritas
+  // Íconos de los medidores
   for (let i = 0; i < 5; i++) addCanvas(scene, `face${i}`, drawFace(i));
+  for (let i = 0; i < 5; i++) addCanvas(scene, `fear${i}`, drawFear(i));
+  for (let i = 0; i < 5; i++) addCanvas(scene, `batt${i}`, drawBattery(i));
+
+  // Objetos chiquitos de los niveles 2 y 3
+  const small = (key, rows, pal) => {
+    const { c, ctx } = canvas(rows[0].length, rows.length);
+    drawRows(ctx, rows, pal);
+    addCanvas(scene, key, c);
+  };
+  small('paper', ['OOOOOO', 'OWWWWO', 'OWLLWO', 'OWWWWO', 'OWLLWO', 'OWWWWO', 'OOOOOO'], {
+    O: '#9aa5ad',
+    W: '#ffffff',
+    L: '#b8c4cc',
+  });
+  small('paperRed', ['OOOOOO', 'ORRRRO', 'ORWWRO', 'ORRRRO', 'ORWWRO', 'ORRRRO', 'OOOOOO'], {
+    O: '#7a1010',
+    R: '#ff6a5a',
+    W: '#ffe0dc',
+  });
+  small('folder', ['.OOO....', 'OYYYOOOO', 'OYYYYYYO', 'OYWWWWYO', 'OYYYYYYO', 'OOOOOOOO'], {
+    O: '#7a5a20',
+    Y: '#f2c96a',
+    W: '#ffffff',
+  });
+  small('lampOn', ['..OOO..', '.OYYYO.', 'OYYWYYO', 'OYYWYYO', '.OYYYO.', '..OGO..', '..OGO..', '..OOO..'], {
+    O: '#7a5a10',
+    Y: '#ffe45a',
+    W: '#ffffff',
+    G: '#9aa5ad',
+  });
+  small('lampOff', ['..OOO..', '.OGGGO.', 'OGGGGGO', 'OGGGGGO', '.OGGGO.', '..ODO..', '..ODO..', '..OOO..'], {
+    O: '#3a434b',
+    G: '#6b7b85',
+    D: '#4a545c',
+  });
+  small('glow', ['..Y..', '.Y.Y.', 'Y...Y', '.Y.Y.', '..Y..'], { Y: '#fff2a0' });
+  small('qmark', ['.OOOO.', 'OYYYYO', 'OYOOYO', 'OOOYYO', '..OYO.', '..OOO.', '..OYO.', '..OOO.'], {
+    O: '#26303a',
+    Y: '#ffd84a',
+  });
+  small('marker', ['..YYY..', '.Y...Y.', 'Y.....Y', 'Y.....Y', 'Y.....Y', '.Y...Y.', '..YYY..'], { Y: '#ffd84a' });
+  small('glint', ['.R.', 'RWR', '.R.'], { R: '#ff5a5a', W: '#ffe0dc' });
+  small('calIcon', ['.O..O.', 'RRRRRR', 'RRRRRR', 'WWWWWW', 'WOWOWW', 'WWWWWW', 'WOWWOW', 'WWWWWW'], {
+    O: '#26303a',
+    R: '#e04848',
+    W: '#ffffff',
+  });
+  small('sheet', ['OOOOOOO', 'OWWWWWO', 'OWGGGWO', 'OWWWWWO', 'OWGGWWO', 'OWWWWWO', 'OOOOOOO'], {
+    O: '#5e6b75',
+    W: '#ffffff',
+    G: '#3fb68b',
+  });
+  // Bandeja (mesita con bandeja) y carrito como sprites de 16x16
+  {
+    const { c, ctx } = canvas(16, 16);
+    const r = (x, y, w, h, col) => {
+      ctx.fillStyle = col;
+      ctx.fillRect(x, y, w, h);
+    };
+    r(1, 5, 14, 8, '#7d5530');
+    r(2, 6, 12, 6, '#b07a45');
+    r(3, 3, 10, 5, '#5e6b75');
+    r(4, 4, 8, 3, '#d8dde2');
+    r(2, 13, 2, 3, '#5a3a20');
+    r(12, 13, 2, 3, '#5a3a20');
+    addCanvas(scene, 'tray', c);
+  }
+  {
+    const { c, ctx } = canvas(16, 16);
+    const r = (x, y, w, h, col) => {
+      ctx.fillStyle = col;
+      ctx.fillRect(x, y, w, h);
+    };
+    r(2, 4, 12, 9, '#8a969e');
+    r(3, 5, 10, 7, '#dfe6ea');
+    r(4, 2, 3, 3, '#7ec8e3');
+    r(8, 1, 2, 4, '#f6f1e3');
+    r(10, 7, 3, 3, '#e04848');
+    r(11, 7, 1, 3, '#ffffff');
+    r(3, 13, 2, 2, '#333333');
+    r(11, 13, 2, 2, '#333333');
+    addCanvas(scene, 'cart', c);
+  }
 
   // Pixel blanco
   {
@@ -206,6 +374,22 @@ export function generateTextures(scene) {
     }
     ctx.putImageData(img, 0, 0);
     addCanvas(scene, 'vignette', c);
+    // Versión oscura (miedo) y gris azulada (bajón)
+    [
+      ['vignetteDark', [8, 10, 18]],
+      ['vignetteBlue', [30, 40, 70]],
+    ].forEach(([key, rgb]) => {
+      const cc = canvas(w, h);
+      const im2 = cc.ctx.createImageData(w, h);
+      for (let i = 0; i < img.data.length; i += 4) {
+        im2.data[i] = rgb[0];
+        im2.data[i + 1] = rgb[1];
+        im2.data[i + 2] = rgb[2];
+        im2.data[i + 3] = img.data[i + 3];
+      }
+      cc.ctx.putImageData(im2, 0, 0);
+      addCanvas(scene, key, cc.c);
+    });
   }
 
   // Fachada del sanatorio para la pantalla de inicio (180x120, se escala x4)

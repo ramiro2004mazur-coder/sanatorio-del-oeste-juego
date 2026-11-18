@@ -181,7 +181,7 @@ class AudioEngine {
   play(name) {
     if (!this.ready || this.muted) return;
     const now = performance.now();
-    const minGap = { step: 90, blip: 35, bump: 250 }[name] || 0;
+    const minGap = { step: 90, blip: 35, bump: 250, paper: 120, heartbeat: 250, printer: 300, scroll: 350 }[name] || 0;
     if (minGap && this.lastPlay[name] && now - this.lastPlay[name] < minGap) return;
     this.lastPlay[name] = now;
     try {
@@ -243,6 +243,70 @@ class AudioEngine {
           [67, 72, 76, 79].forEach((n, i) =>
             this._tone(midi(n), 0.2, { type: 'triangle', vol: 0.2, delay: i * 0.09 }),
           );
+          break;
+        // ---------- nivel 2 ----------
+        case 'ding': // factura cargada
+          this._tone(midi(84), 0.25, { type: 'triangle', vol: 0.22 });
+          this._tone(midi(91), 0.35, { type: 'triangle', vol: 0.16, delay: 0.08 });
+          break;
+        case 'error':
+          this._tone(440, 0.14, { type: 'square', vol: 0.16 });
+          this._tone(330, 0.14, { type: 'square', vol: 0.16, delay: 0.16 });
+          this._tone(220, 0.3, { type: 'square', vol: 0.16, delay: 0.32 });
+          break;
+        case 'phone': // ring ring
+          for (let k = 0; k < 2; k++) {
+            for (let i = 0; i < 6; i++) {
+              this._tone(i % 2 ? 1180 : 940, 0.045, { type: 'square', vol: 0.08, delay: k * 0.42 + i * 0.05 });
+            }
+          }
+          break;
+        case 'printer':
+          for (let i = 0; i < 5; i++) this._noise(0.06, { vol: 0.12, freq: 2200, filter: 'bandpass', delay: i * 0.08 });
+          this._tone(180, 0.4, { type: 'sawtooth', vol: 0.04 });
+          break;
+        case 'paper':
+          this._noise(0.16, { vol: 0.1, freq: 3200, filter: 'highpass' });
+          break;
+        case 'slam': // golpe en la mesa
+          this._tone(90, 0.25, { type: 'sine', vol: 0.5, to: 45 });
+          this._noise(0.12, { vol: 0.35, freq: 600 });
+          break;
+        case 'heartbeat':
+          this._tone(62, 0.12, { type: 'sine', vol: 0.45, to: 40 });
+          this._tone(58, 0.12, { type: 'sine', vol: 0.35, to: 38, delay: 0.17 });
+          break;
+        case 'drawer':
+          this._noise(0.22, { vol: 0.16, freq: 900, filter: 'bandpass' });
+          this._tone(140, 0.08, { type: 'square', vol: 0.12, delay: 0.22 });
+          break;
+        case 'pile': // pila de papeles que se viene abajo
+          for (let i = 0; i < 8; i++) this._noise(0.14, { vol: 0.14, freq: 2600 + i * 200, filter: 'highpass', delay: i * 0.07 });
+          this._tone(120, 0.5, { type: 'triangle', vol: 0.25, to: 50, delay: 0.5 });
+          break;
+        // ---------- nivel 3 ----------
+        case 'calendar': // hoja de calendario
+          this._noise(0.09, { vol: 0.12, freq: 2800, filter: 'highpass' });
+          this._tone(1400, 0.05, { type: 'square', vol: 0.05, to: 900, delay: 0.06 });
+          break;
+        case 'lowbatt': // bajón de batería
+          [76, 72, 67].forEach((n, i) => this._tone(midi(n), 0.14, { type: 'square', vol: 0.1, delay: i * 0.13 }));
+          break;
+        case 'scroll': // pergamino que se desenrolla
+          this._noise(0.5, { vol: 0.1, freq: 1800, filter: 'bandpass' });
+          this._tone(300, 0.4, { type: 'triangle', vol: 0.05, to: 200 });
+          break;
+        case 'lamp': // lamparita que se prende
+          this._tone(midi(79), 0.08, { type: 'triangle', vol: 0.18 });
+          this._tone(midi(86), 0.25, { type: 'triangle', vol: 0.18, delay: 0.07 });
+          break;
+        case 'lampOff':
+          this._tone(midi(74), 0.1, { type: 'triangle', vol: 0.14 });
+          this._tone(midi(62), 0.3, { type: 'triangle', vol: 0.14, delay: 0.1, to: 180 });
+          break;
+        case 'pickup':
+          this._tone(midi(76), 0.06, { type: 'square', vol: 0.1 });
+          this._tone(midi(83), 0.08, { type: 'square', vol: 0.1, delay: 0.06 });
           break;
         default:
           break;

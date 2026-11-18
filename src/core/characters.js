@@ -74,7 +74,8 @@ function frameRows(dir, f, def) {
   const baseDir = dir === 'right' ? 'left' : dir;
   const upper = UPPER[baseDir].slice();
   const legs = (baseDir === 'left' ? LEGS.side : LEGS.front)[f].slice();
-  let rows = upper.concat(legs);
+  // "Bajón": cabeza y hombros un pixel más abajo (encorvado).
+  let rows = def.droop ? ['................'].concat(upper, legs.slice(1)) : upper.concat(legs);
   // Venda en la rodilla (fila 13).
   if (def.bandage && baseDir !== 'up') {
     const cols = baseDir === 'down' ? [5, 6] : f === 1 ? [5, 6] : [7, 8];
@@ -138,7 +139,19 @@ export function drawCharacterSheet(def) {
       // Detalle: cofia/gorro del enfermero.
       if (def.cap) {
         ctx.fillStyle = def.cap;
-        ctx.fillRect(ox + 5, 1, 6, 2);
+        ctx.fillRect(ox + 5, def.droop ? 2 : 1, 6, 2);
+      }
+      // Detalle: corbata (jefe).
+      if (def.tie && dir === 'down') {
+        ctx.fillStyle = def.tie;
+        ctx.fillRect(ox + 7, 9, 2, 3);
+      }
+      // Detalle: credencial colgada (personal del sanatorio).
+      if (def.badge && dir === 'down') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(ox + 9, 10, 2, 2);
+        ctx.fillStyle = '#4f9fd8';
+        ctx.fillRect(ox + 9, 10, 2, 1);
       }
     }
   });
@@ -163,6 +176,16 @@ export const CHARACTERS = {
   pac6: { hair: '#2b1d14', skin: '#d9a37a', shirt: '#95a5a6', pants: '#2c3e50', long: true },
   pac7: { hair: '#8a5a2a', skin: '#f1c29b', shirt: '#e67e22', pants: '#556b2f' },
   pac8: { hair: '#f0e0b0', skin: '#f3d0b5', shirt: '#c0392b', pants: '#3b3b55', long: true },
+  // Nivel 2 · Administración
+  lucia: { hair: '#3a2618', skin: '#f3c6a5', shirt: '#b58ad6', pants: '#3b3b55', long: true, badge: true },
+  jefe: { hair: '#5a5a5a', skin: '#d9a37a', shirt: '#3a4a6a', pants: '#2c3440', glasses: true, tie: '#c0392b' },
+  companero: { hair: '#1f1f1f', skin: '#c98f66', shirt: '#e6c35a', pants: '#4a4a4a', badge: true },
+  companera: { hair: '#d8b04a', skin: '#f3d0b5', shirt: '#5f9fd8', pants: '#3b3b55', long: true, badge: true },
+  enfermera: { hair: '#2b1d14', skin: '#b97c55', shirt: '#e88aa8', pants: '#e88aa8', long: true, cap: '#e88aa8' },
+  // Nivel 3 · Enfermería
+  tomas: { hair: '#c0702a', skin: '#e8b48f', shirt: '#5bc8a8', pants: '#5bc8a8', badge: true },
+  tomas_bajon: { hair: '#c0702a', skin: '#e8b48f', shirt: '#4aa88c', pants: '#4aa88c', badge: true, droop: true },
+  jefa: { hair: '#7a2f1e', skin: '#f0c8a8', shirt: '#3d7fb8', pants: '#3d7fb8', long: true, cap: '#3d7fb8', glasses: true },
 };
 
 export function frameIndex(dir, f) {
