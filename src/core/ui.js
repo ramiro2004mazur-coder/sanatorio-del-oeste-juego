@@ -289,6 +289,11 @@ export function renderRich(scene, blocks, opts = {}) {
           const ls = wrap(ctx, it, width - pad * 2 - 26);
           y += ls.length * lh + 8;
         });
+        const noteSize = Math.round(size * 0.78);
+        if (b.note) {
+          ctx.font = font(noteSize, false);
+          y += wrap(ctx, b.note, width - pad * 2).length * Math.round(noteSize * 1.12) + 4;
+        }
         const boxH = y - y0 + pad - 8;
         if (draw) {
           ctx.fillStyle = b.border || '#1d2b30';
@@ -306,6 +311,7 @@ export function renderRich(scene, blocks, opts = {}) {
             para(it, pad + 26, width - pad * 2 - 26, size, color, b.em || em, 'left', false);
             y += 8;
           });
+          if (b.note) para(b.note, pad, width - pad * 2, noteSize, '#5e6b75', '#5e6b75', 'left', false);
         }
         y = y0 + boxH + 14;
       }
@@ -330,18 +336,24 @@ export function renderRich(scene, blocks, opts = {}) {
   return { key, width, height: h };
 }
 
-// ---------- barra de dolor ----------
-export class PainBar {
-  constructor(scene, x, y, w) {
+// ---------- medidor del nivel (dolor, miedo, motivación...) ----------
+// El valor interno siempre es "cuánto falta para perder" (0 = bien, 100 = perdiste).
+// Si el medidor baja (tipo batería), se muestra al revés: 100 - valor.
+export const DEFAULT_METER = { nombre: 'DOLOR', icono: 'face', sube: true };
+
+export class Meter {
+  constructor(scene, x, y, w, cfg = DEFAULT_METER) {
     this.scene = scene;
     this.x = x;
     this.y = y;
     this.w = w;
-    this.value = 0;
-    this.face = scene.add.image(x, y + 34, 'face0').setScale(4).setOrigin(0, 0.5);
-    this.label = bodyText(scene, x + 84, y - 4, 'DOLOR DE RODILLA', 30, COLORS.cream);
+    this.cfg = { ...DEFAULT_METER, ...cfg };
+    this.value = -1;
+    this.icon = this.cfg.icono || 'face';
+    this.face = scene.add.image(x, y + 34, `${this.icon}0`).setScale(4).setOrigin(0, 0.5);
+    this.label = bodyText(scene, x + 84, y - 4, this.cfg.nombre, 30, COLORS.cream);
     this.g = scene.add.graphics();
-    this.draw();
+    this.setValue(0);
   }
   setDepth(d) {
     this.face.setDepth(d);
@@ -349,16 +361,28 @@ export class PainBar {
     this.g.setDepth(d);
     return this;
   }
+  objects() {
+    return [this.face, this.label, this.g];
+  }
   setValue(v) {
     const nv = Math.max(0, Math.min(100, v));
     if (Math.abs(nv - this.value) < 0.05) return;
     this.value = nv;
     this.draw();
   }
+  shown() {
+    return this.cfg.sube === false ? 100 - this.value : this.value;
+  }
   draw() {
-    const v = this.value;
-    const lvl = v < 25 ? 0 : v < 50 ? 1 : v < 70 ? 2 : v < 90 ? 3 : 4;
-    this.face.setTexture(`face${lvl}`);
+    const bad = this.value;
+    let lvl;
+    if (this.icon === 'batt') {
+      const left = 100 - bad;
+      lvl = left > 80 ? 4 : left > 55 ? 3 : left > 30 ? 2 : left > 8 ? 1 : 0;
+    } else {
+      lvl = bad < 25 ? 0 : bad < 50 ? 1 : bad < 70 ? 2 : bad < 90 ? 3 : 4;
+    }
+    this.face.setTexture(`${this.icon}${lvl}`);
     const g = this.g;
     g.clear();
     const bx = this.x + 84;
@@ -367,14 +391,21 @@ export class PainBar {
     const bh = 30;
     g.fillStyle(0x000000, 1);
     g.fillRect(bx, by, bw, bh);
-    g.fillStyle(0x3a1a1a, 1);
+    g.fillStyle(this.cfg.sube === false ? 0x1a2a2a : 0x3a1a1a, 1);
     g.fillRect(bx + 4, by + 4, bw - 8, bh - 8);
     const segs = 20;
     const sw = (bw - 8) / segs;
-    const filled = Math.round((v / 100) * segs);
+    const shown = this.shown();
+    const filled = Math.round((shown / 100) * segs);
     for (let i = 0; i < filled; i++) {
-      const t = i / (segs - 1);
-      const col = t < 0.4 ? 0x5bd17a : t < 0.7 ? 0xffd84a : t < 0.85 ? 0xff9a3a : 0xff4a4a;
+      let col;
+      if (this.cfg.sube === false) {
+        col = shown > 60 ? 0x5bd17a : shown > 30 ? 0xffd84a : 0xff4a4a;
+      } else {
+        const t = i / (segs - 1);
+        const pal = this.cfg.colores || [0x5bd17a, 0xffd84a, 0xff9a3a, 0xff4a4a];
+        col = t < 0.4 ? pal[0] : t < 0.7 ? pal[1] : t < 0.85 ? pal[2] : pal[3];
+      }
       g.fillStyle(col, 1);
       g.fillRect(Math.round(bx + 4 + i * sw), by + 4, Math.ceil(sw) - 2, bh - 8);
     }

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GW, GH, COLORS, bodyText, titleText, PainBar, registerHit } from '../core/ui.js';
+import { GW, GH, COLORS, bodyText, titleText, Meter, registerHit, renderRich } from '../core/ui.js';
 import { controls } from '../core/controls.js';
 import { audio } from '../core/audio.js';
 import { state } from '../core/state.js';
@@ -32,8 +32,10 @@ export default class Hud extends Phaser.Scene {
     this.controlsVisible = true;
     controls.reset();
 
-    // Viñeta roja de dolor
-    this.vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setScale(4).setAlpha(0).setDepth(0);
+    const L = state.level;
+    // Viñeta del medidor (roja para dolor, oscura para miedo...)
+    const vk = (L.medidor && L.medidor.vineta) || 'vignette';
+    this.vignette = this.add.image(0, 0, vk).setOrigin(0).setScale(4).setAlpha(0).setDepth(0);
     this.redFlash = this.add.rectangle(0, 0, GW, GH, 0xff2a2a, 1).setOrigin(0).setAlpha(0).setDepth(1);
 
     // Panel superior
@@ -42,7 +44,32 @@ export default class Hud extends Phaser.Scene {
     top.fillRect(0, 0, GW, TOP_H);
     top.fillStyle(0x000000, 0.5);
     top.fillRect(0, TOP_H, GW, 4);
-    this.pain = new PainBar(this, 16, 10, 568).setDepth(6);
+    this.pain = new Meter(this, 16, 10, 568, L.medidor).setDepth(6);
+    // Calendario (solo si el nivel lo usa)
+    this.calIcon = this.add.image(300, 20, 'calIcon').setScale(4).setOrigin(0, 0.5).setDepth(6).setVisible(false);
+    this.calText = titleText(this, 338, 4, '', 26, COLORS.yellow).setDepth(6).setVisible(false);
+    // Hoja grande de calendario que aparece al cambiar de mes
+    this.calPage = this.add.container(GW / 2, 470).setDepth(15).setVisible(false);
+    {
+      const g = this.add.graphics();
+      g.fillStyle(0x000000, 0.45);
+      g.fillRect(-150 + 8, -120 + 10, 300, 240);
+      g.fillStyle(0x26303a, 1);
+      g.fillRect(-150, -120, 300, 240);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(-144, -114, 288, 228);
+      g.fillStyle(0xe04848, 1);
+      g.fillRect(-144, -114, 288, 66);
+      g.fillStyle(0x26303a, 1);
+      [-90, 78].forEach((x) => g.fillRect(x, -134, 12, 34));
+      this.calPageText = titleText(this, 0, -81, '', 34, '#ffffff').setOrigin(0.5);
+      this.calPageSub = bodyText(this, 0, 30, '', 40, COLORS.dark, {
+        align: 'center',
+        wordWrap: { width: 260, useAdvancedWrap: true },
+      }).setOrigin(0.5);
+      this.calPage.add([g, this.calPageText, this.calPageSub]);
+    }
+    this.overlay = this.add.container(0, 0).setDepth(25);
     this.objective = bodyText(this, 18, 100, '', 32, COLORS.cream, {
       wordWrap: { width: GW - 36, useAdvancedWrap: true },
       lineSpacing: -4,
@@ -145,6 +172,97 @@ export default class Hud extends Phaser.Scene {
     let a = base * 0.8;
     if (v > 75) a += Math.sin(this.time.now / 180) * 0.08;
     this.vignette.setAlpha(Math.max(0, a));
+  }
+
+  // ---------- calendario ----------
+  setCalendar(month, sub, big = true) {
+    if (!this.ready) return;
+    this.calIcon.setVisible(true);
+    this.calText.setVisible(true).setText(month);
+    if (!big) return;
+    audio.play('calendar');
+    this.calPageText.setText(month);
+    this.calPageSub.setText(sub || '');
+    this.tweens.killTweensOf(this.calPage);
+    this.calPage.setVisible(true).setAlpha(1).setScale(1, 0.1).setY(470);
+    this.tweens.add({ targets: this.calPage, scaleY: 1, duration: 180, ease: 'Back.Out' });
+    this.tweens.add({
+      targets: this.calPage,
+      alpha: 0,
+      y: 430,
+      delay: 1100,
+      duration: 350,
+      onComplete: () => this.calPage.setVisible(false),
+    });
+  }
+
+  // ---------- pergamino (evaluación anual) ----------
+  // Se desenrolla de arriba hacia abajo y sigue de largo. Va debajo del fundido de derrota.
+  showScroll(title, lines, opts = {}) {
+    const W = 560;
+    const x0 = (GW - W) / 2;
+    const c = this.add.container(0, 0);
+    this.overlay.add(c);
+    const paper = this.add.graphics();
+    const content = this.add.container(0, 0);
+    c.add([paper, content]);
+    // contenido
+    const blocks = [{ t: 'h', text: title, color: '#7a2a10', size: 40, align: 'center' }];
+    lines.forEach((l) => blocks.push({ t: 'p', text: l, after: 22 }));
+    const rich = renderRich(this, blocks, { width: W - 80, size: 38, color: '#3a2a10', em: '#b01818' });
+    const img = this.add.image(x0 + 40, 0, rich.key).setOrigin(0, 0);
+    content.add(img);
+    const top = 190;
+    const st = { len: 0, offset: 0 };
+    const draw = () => {
+      paper.clear();
+      const h = st.len;
+      paper.fillStyle(0x000000, 0.35);
+      paper.fillRect(x0 + 10, top + 12, W, h);
+      paper.fillStyle(0xe8d29a, 1);
+      paper.fillRect(x0, top, W, h);
+      paper.fillStyle(0xf6e7b8, 1);
+      paper.fillRect(x0 + 10, top, W - 20, h);
+      paper.fillStyle(0xd4b878, 1);
+      for (let yy = 0; yy < h; yy += 46) paper.fillRect(x0 + 20, top + yy + 30 - (st.offset % 46), W - 40, 2);
+      // rodillo de arriba y rodillo de abajo
+      paper.fillStyle(0x8a5a2a, 1);
+      paper.fillRect(x0 - 24, top - 24, W + 48, 30);
+      paper.fillStyle(0xb07a45, 1);
+      paper.fillRect(x0 - 18, top - 20, W + 36, 10);
+      paper.fillStyle(0x8a5a2a, 1);
+      paper.fillRect(x0 - 24, top + h - 6, W + 48, 30);
+      paper.fillStyle(0xb07a45, 1);
+      paper.fillRect(x0 - 18, top + h - 2, W + 36, 10);
+      img.y = top + 30 - st.offset;
+      img.setCrop(0, st.offset, W - 80, Math.max(0, h - 40));
+    };
+    draw();
+    const maxLen = GH - top + 40;
+    // se desenrolla hasta abajo...
+    this.tweens.add({
+      targets: st,
+      len: maxLen,
+      duration: opts.unroll || 2600,
+      ease: 'Sine.Out',
+      onUpdate: draw,
+      onComplete: () => {
+        // ...y sigue de largo: el texto se sigue corriendo
+        this.tweens.add({
+          targets: st,
+          offset: Math.max(0, rich.height - (maxLen - 120)),
+          duration: opts.scroll || 6000,
+          ease: 'Linear',
+          onUpdate: draw,
+        });
+      },
+    });
+    this.scrollObj = c;
+    return c;
+  }
+
+  clearOverlay() {
+    this.overlay.removeAll(true);
   }
 
   hit() {
@@ -373,6 +491,13 @@ export default class Hud extends Phaser.Scene {
     if (d && d.onDone) d.onDone();
   }
 
+  // Cierra un diálogo abierto sin ejecutar lo que venía después (lo usa la derrota).
+  closeDialogSilently() {
+    if (!this.dialog) return;
+    this.dialog.onDone = null;
+    this.closeDialog();
+  }
+
   isDialogOpen() {
     return !!this.dialog;
   }
@@ -381,6 +506,7 @@ export default class Hud extends Phaser.Scene {
   showFaint(text, onContinue) {
     this.releaseJoystick();
     this.setControlsVisible(false);
+    this.closeDialogSilently();
     this.faintState = { canContinue: false, onContinue, done: false };
     this.faintText.setText(text);
     this.tweens.add({ targets: this.blackout, alpha: 0.88, duration: 1300, delay: 500 });

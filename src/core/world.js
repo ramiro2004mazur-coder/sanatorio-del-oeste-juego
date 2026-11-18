@@ -47,6 +47,8 @@ export class Walker {
     this.sprite = this.scene.add.sprite(0, 0, `ch_${key}`, frameIndex(dir, 0));
     this.sprite.setOrigin(0.5, 0.5);
     this.bob = 0;
+    this.offX = 0; // temblor (lo maneja el nivel)
+    this.offY = 0; // hombros caídos / saltitos
     this.place(tx, ty);
   }
 
@@ -56,10 +58,23 @@ export class Walker {
     this.toX = tx;
     this.toY = ty;
     this.moving = false;
-    this.sprite.x = tx * TILE + 8;
-    this.sprite.y = ty * TILE + 8;
-    this.sprite.setDepth(this.sprite.y);
+    this.sprite.x = tx * TILE + 8 + this.offX;
+    this.sprite.y = ty * TILE + 8 + this.offY;
+    this.sprite.setDepth(ty * TILE + 8);
     this.sprite.setFrame(frameIndex(this.dir, 0));
+  }
+
+  // Reubica el sprite en su tile (para aplicar temblor/postura estando quieto).
+  refresh() {
+    if (this.moving) return;
+    this.sprite.x = this.tx * TILE + 8 + this.offX;
+    this.sprite.y = this.ty * TILE + 8 + this.offY;
+  }
+
+  setSkin(key) {
+    if (this.key === key || !this.scene.textures.exists(`ch_${key}`)) return;
+    this.key = key;
+    this.sprite.setTexture(`ch_${key}`, frameIndex(this.dir, 0));
   }
 
   face(dir) {
@@ -100,9 +115,9 @@ export class Walker {
     let y = (this.fromY + (this.toY - this.fromY) * p) * TILE + 8;
     const badLeg = this.limp && this.steps % 2 === 0;
     if (badLeg && p > 0.25 && p < 0.75) y += 1; // se hunde en la pierna mala
-    this.sprite.x = Math.round(x);
-    this.sprite.y = Math.round(y);
-    this.sprite.setDepth(this.sprite.y);
+    this.sprite.x = Math.round(x) + this.offX;
+    this.sprite.y = Math.round(y) + this.offY;
+    this.sprite.setDepth(Math.round(y));
     const f = p > 0.15 && p < 0.8 ? (this.steps % 2 ? 1 : 2) : 0;
     this.sprite.setFrame(frameIndex(this.dir, f));
     if (p >= 1) {
@@ -125,7 +140,10 @@ export class World {
     this.level = level;
     this.fixed = !!opts.fixed;
     this.walkers = [];
-    this.closed = new Set(this.fixed ? [] : level.puertasCerradas || []);
+    // Tiles bloqueados por objetos del nivel (carrito, bandejas...).
+    this.extraSolid = new Set();
+    const closed = opts.closed || (this.fixed ? [] : level.puertasCerradas || []);
+    this.closed = new Set(closed);
     this.closedSprites = {};
     this.signs = {};
 
@@ -154,18 +172,41 @@ export class World {
     g.fillRect(1 * TILE + 4, 23 * TILE + 3, 4, 10);
     g.fillRect(1 * TILE + 2 + 5 * TILE - 4 - 6, 23 * TILE + 3, 4, 10);
 
-    // Carteles extra del nivel (por ejemplo, "¡Nos mudamos!")
-    (level.cartelesExtra || []).forEach((c) => {
+    // Puerta del ala del personal cerrada (nivel 1): cartelito.
+    if (this.closed.has('ala')) {
+      const d = ROOMS.ala.door;
       const gg = scene.add.graphics().setDepth(899);
       gg.fillStyle(0x26303a, 1);
-      gg.fillRect(c.x * TILE, c.y * TILE + 1, c.w * TILE, 14);
-      gg.fillStyle(0xffe27a, 1);
-      gg.fillRect(c.x * TILE + 1, c.y * TILE + 2, c.w * TILE - 2, 12);
-      const t = worldText(scene, c.x * TILE + (c.w * TILE) / 2, c.y * TILE + 8, c.texto, 4.5, '#5a3a10', {
+      gg.fillRect(d.x * TILE - 12, d.y * TILE - 9, 24, 9);
+      gg.fillStyle(0xffffff, 1);
+      gg.fillRect(d.x * TILE - 11, d.y * TILE - 8, 22, 7);
+      worldText(scene, d.x * TILE, d.y * TILE - 4.5, 'SOLO PERSONAL', 3.6, '#c0392b', { fontStyle: 'bold' })
+        .setOrigin(0.5)
+        .setDepth(900);
+    }
+
+    // Carteles extra del nivel (por ejemplo, "¡Nos mudamos!")
+    const ESTILOS = {
+      amarillo: [0x26303a, 0xffe27a, '#5a3a10'],
+      rojo: [0x5a0a0a, 0xe04848, '#ffffff'],
+      blanco: [0x26303a, 0xffffff, '#1f4e79'],
+    };
+    this.extraSigns = {};
+    (level.cartelesExtra || []).forEach((c) => {
+      const [border, fill, ink] = ESTILOS[c.estilo || 'amarillo'] || ESTILOS.amarillo;
+      const h = c.alto || 14;
+      const gg = scene.add.graphics().setDepth(899);
+      gg.fillStyle(border, 1);
+      gg.fillRect(c.x * TILE, c.y * TILE + 1, c.w * TILE, h);
+      gg.fillStyle(fill, 1);
+      gg.fillRect(c.x * TILE + 1, c.y * TILE + 2, c.w * TILE - 2, h - 2);
+      const t = worldText(scene, c.x * TILE + (c.w * TILE) / 2, c.y * TILE + 1 + h / 2, c.texto, c.tamano || 4.5, ink, {
         align: 'center',
         lineSpacing: -2,
+        fontStyle: c.estilo === 'rojo' ? 'bold' : undefined,
       });
       t.setOrigin(0.5).setDepth(900);
+      if (c.id) this.extraSigns[c.id] = { g: gg, t };
     });
 
     // Carteles de consultorios (según el nivel). En la versión arreglada arrancan
@@ -199,7 +240,8 @@ export class World {
     g.fillRect(-w / 2, -h / 2, w, h);
     g.fillStyle(0x1f4e79, 1);
     g.fillRect(-w / 2 + 1, -h / 2 + 1, w - 2, h - 2);
-    const num = worldText(scene, 0, -h / 2 + 1, `CONSULTORIO ${room.numero}`, 4, '#a9dcf0').setOrigin(0.5, 0);
+    const head = def.titulo || room.titulo || `CONSULTORIO ${room.numero}`;
+    const num = worldText(scene, 0, -h / 2 + 1, head, 4, '#a9dcf0').setOrigin(0.5, 0);
     const txt = worldText(scene, 0, h / 2 - 1.5, texto, 4.5, '#ffffff', { fontStyle: 'bold' }).setOrigin(0.5, 1);
     container.add([g, num, txt]);
     return { container, txt, def };
@@ -221,6 +263,19 @@ export class World {
         audio.play('flip');
       },
     });
+  }
+
+  closeDoor(id) {
+    if (this.closed.has(id)) return;
+    this.closed.add(id);
+    const d = ROOMS[id].door;
+    this.closedSprites[id] = this.scene.add.image(d.x * TILE, d.y * TILE, 'doorClosed').setOrigin(0).setDepth(-50);
+  }
+
+  setExtraSolid(x, y, on) {
+    const k = y * MAP_W + x;
+    if (on) this.extraSolid.add(k);
+    else this.extraSolid.delete(k);
   }
 
   openDoor(id) {
@@ -245,6 +300,7 @@ export class World {
 
   isSolid(x, y) {
     if (isSolidTile(x, y)) return true;
+    if (this.extraSolid.has(y * MAP_W + x)) return true;
     const d = tileAt(x, y) === 'D' ? doorAt(x, y) : null;
     if (d && this.closed.has(d)) return true;
     return false;

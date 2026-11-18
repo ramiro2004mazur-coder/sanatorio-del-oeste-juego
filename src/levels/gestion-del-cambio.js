@@ -6,15 +6,27 @@ export default {
   id: 'gestion-del-cambio',
   titulo: 'GESTIÓN DEL CAMBIO',
   subtitulo: '¿Sobrevivís a la gestión del cambio?',
+  // Para el menú de niveles
+  menu: { nombre: 'Gestión del cambio', personaje: 'Sos un paciente con la rodilla a la miseria.' },
 
   // ---------- arranque ----------
-  jugador: { x: 7, y: 22, dir: 'up' },
-  dolor: {
+  // A quién manejás: sprite (ver core/characters.js), nombre y forma de caminar
+  // (renguea | tiembla | cansado | normal).
+  jugador: { x: 7, y: 22, dir: 'up', sprite: 'paciente', nombre: 'Paciente', andar: 'renguea' },
+  // Medidor de arriba. sube: true = se llena (dolor); false = se vacía (batería).
+  // Internamente 0 es "todo bien" y 100 es "perdiste".
+  medidor: {
+    nombre: 'DOLOR DE RODILLA',
+    icono: 'face', // face | fear | batt
+    sube: true,
+    vineta: 'vignette', // borde rojo
     inicial: 10,
     porSegundo: 0.22, // sube solo con el tiempo
     maxAntesDelColapso: 94, // el desmayo "de verdad" lo da el final guionado...
-    topeSegundos: 120, // ...o el tope de tiempo, si alguien se queda quieto
+    topeSegundos: 110, // ...o el tope de tiempo, si alguien se queda quieto
+    lentitud: 0.45, // cuánto te frena cuando está lleno
   },
+  camara: { ancho: 15 }, // en este nivel el ala del personal no se ve
 
   // ---------- mapa: qué cambia en este nivel ----------
   // Carteles de los consultorios: lo que dicen hoy (mal) y cómo quedan arreglados.
@@ -25,7 +37,7 @@ export default {
     { id: 'c4', texto: 'CLÍNICA MÉDICA', arreglado: 'CLÍNICA MÉDICA' },
   ],
   cartelesExtra: [{ x: 9, y: 23, w: 4, texto: '¡NOS MUDAMOS!\nNueva sede >' }],
-  puertasCerradas: ['c2'],
+  puertasCerradas: ['c2', 'ala'],
 
   npcs: [
     { id: 'recepcionista', sprite: 'recepcionista', nombre: 'Recepcionista', x: 2, y: 11, dir: 'down' },
@@ -218,6 +230,7 @@ export default {
   // Repetición del hospital arreglado
   arreglado: {
     titulo: 'Así sería con nuestra propuesta',
+    medidorInicial: 60,
     frase: 'Traumatología: consultorio 2. ¡Nos avisaron a todos el viernes!',
     hablan: ['enfermero', 'administrativo', 'maestranza'],
     recepcion: '¡Hola! Traumato es el 2. Está en el protocolo.',
@@ -263,6 +276,7 @@ export default {
   },
 
   final: {
+    linea: 'Gestión del cambio: un protocolo único para comunicar cambios, bajado en cascada.',
     resumen: 'Un **protocolo único** y en **cascada**: el mismo mensaje, a todos, antes del cambio.',
   },
 };
